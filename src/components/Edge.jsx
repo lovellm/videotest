@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import * as tf from '@tensorflow/tfjs';
+//import * as tf from '@tensorflow/tfjs';
+import EdgeWorker from './Edge.worker';
 
+/*
 const kernel = [
   [
     [[-1, -1],[-1, -1],[-1, -1]],
@@ -19,7 +21,7 @@ const kernel = [
     [[ 1,  1],[ 1,  1],[ 1,  1]],
   ],
 ];
-
+*/
 
 const propTypes = {
   // ImageData object, from canvas2D.getImageData()
@@ -43,6 +45,21 @@ class Edge extends React.Component {
     this.processing = false;
   }
 
+  componentDidMount() {
+    this.worker = new EdgeWorker();
+    this.worker.addEventListener('message', (event) => {
+      this.setState({
+        imgData: event.data
+      }, () => this.processing = false);
+    });
+  }
+
+  componentWillUnmount() {
+    if (this.worker) {
+      this.worker.terminate();
+    }
+  }
+
   componentDidUpdate(prevProps) {
     if (prevProps.imgData !== this.props.imgData) {
       this.startProcess();
@@ -51,12 +68,17 @@ class Edge extends React.Component {
 
   startProcess() {
     if (this.processing) { return; }
+    if (!this.worker) { return; }
     this.processing = true;
+    this.worker.postMessage(this.props.imgData);
+    /*
     this.process(this.props.imgData).then((imgData) =>{
       this.setState({imgData: imgData}, () => this.processing = false);
     });
+    */
   }
 
+  /*
   async process(imgData) {
     const convArray = tf.tidy(()=>{
       let imageTensor = tf.browser.fromPixels(imgData, 3);
@@ -79,6 +101,7 @@ class Edge extends React.Component {
     }
     return new ImageData(newData, imgData.width, imgData.height);
   }
+  */
 
   render() {
     return (

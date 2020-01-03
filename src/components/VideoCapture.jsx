@@ -50,6 +50,7 @@ class VideoCapture extends React.PureComponent {
     this.canvas = React.createRef();
     
     this.handleStart = this.handleStart.bind(this);
+    this.handleCanPlay = this.handleCanPlay.bind(this);
     this.handleStop = this.handleStop.bind(this);
     this.handleCapture = this.handleCapture.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
@@ -69,7 +70,7 @@ class VideoCapture extends React.PureComponent {
   componentDidUpdate(prevProps) {
     if (
       this.props.captureTime !== prevProps.captureTime ||
-      this.props.catpureKey !== prevProps.catpureKey
+      this.props.captureKey !== prevProps.captureKey
     ) {
       this.timedImage();
     }
@@ -100,10 +101,6 @@ class VideoCapture extends React.PureComponent {
       return;
     }
     const video = this.video.current;
-    const canvas = this.canvas.current;
-    
-    // Need 'this' within an event handler, so aliasing to 'that' to use from closure.
-    const that = this;
 
     // Get a video stream from the default device
     // TODO: Allow using specific media device instead of default
@@ -118,56 +115,63 @@ class VideoCapture extends React.PureComponent {
     });
 
     // Set some properties once the stream starts
-    video.addEventListener('canplay', () => {
-      // This event could fire multiple times, only handle it if first time
-      if (that.stream) { return; }
-      try {
-        let width;
-        let height;
+    if (!this.streaming) {
+      video.addEventListener('canplay', this.handleCanPlay, false); // END of video.addEventListener('canplay')
+    }
+  }
 
-        // Scale video based on desired width or height
-        if (that.props.width) {
-          width = that.props.width;
-          height = video.videoHeight / (video.videoWidth/width);
-        } else if (that.props.height) {
-          height = that.props.height;
-          width = video.videoWidth / (video.videoHeight/height);
-        } else {
-          width = video.videoWidth;
-          height = video.videoHeight;
-        }
-        
-        // Set style width/height based on the computed onces.
-        video.setAttribute('width', width);
-        video.setAttribute('height', height);
-        canvas.setAttribute('width', width);
-        canvas.setAttribute('height', height);
+  handleCanPlay() {
+    // This event could fire multiple times, only handle it if first time
+    if (this.streaming) { return; }
+    try {
+      const video = this.video.current;
+      const canvas = this.canvas.current;
+      let width;
+      let height;
 
-        // Update non-state incase event fires again before state updates.
-        that.streaming = true;
-
-        // Update State
-        that.setState({
-          streaming: true,
-          height: height,
-          width: width,
-        }, that.timedImage());
-      } catch (e) {
-        console.error(e);
-        that.handleStop();
+      // Scale video based on desired width or height
+      if (this.props.width) {
+        width = this.props.width;
+        height = video.videoHeight / (video.videoWidth/width);
+      } else if (this.props.height) {
+        height = this.props.height;
+        width = video.videoWidth / (video.videoHeight/height);
+      } else {
+        width = video.videoWidth;
+        height = video.videoHeight;
       }
-  
-      // If given an onStart callback, call it with a reference to the video element
-      if (typeof that.props.onStart === 'function') {
-        that.props.onStart(that.video.current);
-      }
-      // END of canplay callback
-    }, false); // END of video.addEventListener('canplay')
+      
+      // Set style width/height based on the computed onces.
+      video.setAttribute('width', width);
+      video.setAttribute('height', height);
+      canvas.setAttribute('width', width);
+      canvas.setAttribute('height', height);
+
+      // Update non-state incase event fires again before state updates.
+      this.streaming = true;
+
+      // Update State
+      this.setState({
+        streaming: true,
+        height: height,
+        width: width,
+      }, this.timedImage());
+    } catch (e) {
+      console.error(e);
+      this.handleStop();
+    }
+
+    // If given an onStart callback, call it with a reference to the video element
+    if (typeof this.props.onStart === 'function') {
+      this.props.onStart(this.video.current);
+    }
   }
 
   handleStop() {
     const video = this.video.current;
     this.stopVideo(video);
+    video.removeEventListener('canplay', this.handleCanPlay);
+    this.streaming = false;
     if (typeof this.props.onStop === 'function') {
       this.props.onStop();
     }

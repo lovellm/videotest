@@ -4,8 +4,9 @@ import VideoCapture from './components/VideoCapture';
 import InvertImage from './components/InvertImage';
 import CanvasImgData from './components/CanvasImgData';
 import FadedImage from './components/FadedImage';
+import Edge from './components/Edge';
 
-class App extends React.PureComponent {
+class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -13,11 +14,13 @@ class App extends React.PureComponent {
       imgUrl: null,
       disable: false,
       hideVideo: false,
+      continuous: false,
     }
 
     this.handleCapture = this.handleCapture.bind(this);
     this.handleToggleDisable = this.handleToggleDisable.bind(this);
     this.handleToggleHide = this.handleToggleHide.bind(this);
+    this.handleToggleCont = this.handleToggleCont.bind(this);
   }
 
   handleCapture(data) {
@@ -39,6 +42,10 @@ class App extends React.PureComponent {
     this.setState({hideVideo: !this.state.hideVideo});
   }
 
+  handleToggleCont() {
+    this.setState({continuous: !this.state.continuous});
+  }
+
   render() {
     return (
       <div className="App">
@@ -47,7 +54,7 @@ class App extends React.PureComponent {
           disable={this.state.disable}
           width={400}
           height={null}
-          captureKey={null}
+          captureKey={this.state.continuous ? null : ' '}
           captureTime={42}
           captureData={{
             imgData: true,
@@ -63,9 +70,13 @@ class App extends React.PureComponent {
         <FadedImage imgData={this.state.imgData}>
           <CanvasImgData />
         </FadedImage>
+        <Edge imgData={this.state.imgData}>
+          <CanvasImgData />
+        </Edge>
         <div>
           <button onClick={this.handleToggleDisable}>Toggle Camera</button>
           <button onClick={this.handleToggleHide}>Toggle Original Video</button>
+          <button onClick={this.handleToggleCont}>Toggle Continuous</button>
         </div>
       </div>
     );
